@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex">
+  <meta name="referrer" content="no-referrer">
+  <title>Acceso privado · Trío de la Luz Producciones</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --night: #0b0e12;
+      --stone: #1b212b;
+      --white: #f4efe6;
+      --muted: #9aa3af;
+      --amber: #d8a657;
+      --red: #d1503f;
+      --blue: #4a7fb5;
+      --green: #3f9b6e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(74,127,181,.12), transparent 34rem),
+        var(--night);
+      color: var(--white);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { width: min(34rem, 100%); text-align: center; }
+    .mark {
+      position: relative;
+      width: 5rem;
+      height: 5rem;
+      margin: 0 auto 2rem;
+      animation: breathe 2.4s ease-in-out infinite;
+    }
+    .mark span {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      box-shadow: 0 0 1.4rem currentColor;
+    }
+    .mark span:nth-child(1) { color: var(--red); transform: translate(-2.1rem, -.5rem); }
+    .mark span:nth-child(2) { color: var(--blue); transform: translate(1.1rem, -.5rem); }
+    .mark span:nth-child(3) { color: var(--green); transform: translate(-.5rem, 1.25rem); }
+    .mark::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: .72rem;
+      height: .72rem;
+      border-radius: 50%;
+      background: var(--white);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 1.8rem rgba(244,239,230,.85);
+    }
+    h1 {
+      margin: 0 0 .8rem;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2rem, 7vw, 3.25rem);
+      font-weight: 400;
+    }
+    p { margin: 0 auto; color: var(--muted); line-height: 1.7; }
+    .eyebrow {
+      margin-bottom: 1.1rem;
+      color: var(--amber);
+      font-size: .72rem;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+    }
+    #detail { margin-top: .75rem; font-size: .86rem; }
+    html.error .mark { animation: none; opacity: .55; }
+    @keyframes breathe { 50% { transform: scale(1.06); filter: brightness(1.16); } }
+    @media (prefers-reduced-motion: reduce) { .mark { animation: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p class="eyebrow">Trío de la Luz Producciones</p>
+    <h1>Abriendo el laboratorio</h1>
+    <p id="status" role="status" aria-live="polite">Verificando el enlace privado…</p>
+    <p id="detail">El contenido se descifra únicamente en este dispositivo.</p>
+    <noscript>Necesitas activar JavaScript para abrir este contenido.</noscript>
+  </main>
+  <script>
+    (async () => {
+      const status = document.getElementById("status");
+      const detail = document.getElementById("detail");
+
+      try {
+        const token = location.hash.slice(1);
+        if (!/^k1\.[A-Za-z0-9_-]{43}$/.test(token)) throw new Error("invalid-link");
+
+        const encodedKey = token.slice(3);
+        const base64 = encodedKey.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - encodedKey.length % 4) % 4);
+        const keyBytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));
+        const response = await fetch("contenido.tlab", { cache: "no-store" });
+        if (!response.ok) throw new Error("unavailable");
+
+        const payload = new Uint8Array(await response.arrayBuffer());
+        const magic = new TextDecoder().decode(payload.subarray(0, 4));
+        if (magic !== "TDL1" || payload.length < 33) throw new Error("invalid-content");
+
+        const iv = payload.subarray(4, 16);
+        const encryptedContent = payload.subarray(16);
+        const key = await crypto.subtle.importKey(
+          "raw",
+          keyBytes,
+          { name: "AES-GCM" },
+          false,
+          ["decrypt"]
+        );
+        const plaintext = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv, tagLength: 128 },
+          key,
+          encryptedContent
+        );
+
+        const html = new TextDecoder().decode(plaintext);
+        document.open();
+        document.write(html);
+        document.close();
+      } catch (error) {
+        document.documentElement.classList.add("error");
+        status.textContent = "Este enlace está incompleto o no es válido.";
+        detail.textContent = "Solicita al equipo el enlace privado completo.";
+      }
+    })();
+  </script>
+</body>
+</html>
