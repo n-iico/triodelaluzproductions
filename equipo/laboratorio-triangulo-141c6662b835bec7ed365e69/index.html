@@ -77,7 +77,50 @@
       letter-spacing: .22em;
       text-transform: uppercase;
     }
-    #detail { margin-top: .75rem; font-size: .86rem; }
+    form {
+      display: grid;
+      gap: .8rem;
+      width: min(25rem, 100%);
+      margin: 1.8rem auto 0;
+      text-align: left;
+    }
+    label {
+      color: var(--white);
+      font-size: .82rem;
+      font-weight: 650;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    input,
+    button {
+      width: 100%;
+      min-height: 3.2rem;
+      border-radius: .45rem;
+      font: inherit;
+    }
+    input {
+      border: 1px solid rgba(244,239,230,.22);
+      padding: .75rem 1rem;
+      background: rgba(27,33,43,.78);
+      color: var(--white);
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--amber);
+      box-shadow: 0 0 0 3px rgba(216,166,87,.16);
+    }
+    button {
+      border: 1px solid var(--amber);
+      padding: .75rem 1rem;
+      background: var(--amber);
+      color: var(--night);
+      cursor: pointer;
+      font-weight: 750;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:disabled { cursor: wait; opacity: .68; }
+    #status { min-height: 1.7rem; margin-top: 1rem; }
+    #detail { margin-top: .5rem; font-size: .86rem; }
     html.error .mark { animation: none; opacity: .55; }
     @keyframes breathe { 50% { transform: scale(1.06); filter: brightness(1.16); } }
     @media (prefers-reduced-motion: reduce) { .mark { animation: none; } }
@@ -87,54 +130,87 @@
   <main>
     <div class="mark" aria-hidden="true"><span></span><span></span><span></span></div>
     <p class="eyebrow">Trío de la Luz Producciones</p>
-    <h1>Abriendo el laboratorio</h1>
-    <p id="status" role="status" aria-live="polite">Verificando el enlace privado…</p>
+    <h1>Acceso al laboratorio</h1>
+    <p>Ingresa la clave compartida por el equipo.</p>
+    <form id="gate">
+      <label for="password">Clave de acceso</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+      <button id="submit" type="submit">Entrar</button>
+    </form>
+    <p id="status" role="status" aria-live="polite"></p>
     <p id="detail">El contenido se descifra únicamente en este dispositivo.</p>
     <noscript>Necesitas activar JavaScript para abrir este contenido.</noscript>
   </main>
   <script>
-    (async () => {
+    (() => {
+      const form = document.getElementById("gate");
+      const passwordField = document.getElementById("password");
+      const submitButton = document.getElementById("submit");
       const status = document.getElementById("status");
       const detail = document.getElementById("detail");
 
-      try {
-        const token = location.hash.slice(1);
-        if (!/^k1\.[A-Za-z0-9_-]{43}$/.test(token)) throw new Error("invalid-link");
-
-        const encodedKey = token.slice(3);
-        const base64 = encodedKey.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - encodedKey.length % 4) % 4);
-        const keyBytes = Uint8Array.from(atob(base64), character => character.charCodeAt(0));
-        const response = await fetch("contenido.tlab", { cache: "no-store" });
-        if (!response.ok) throw new Error("unavailable");
-
-        const payload = new Uint8Array(await response.arrayBuffer());
-        const magic = new TextDecoder().decode(payload.subarray(0, 4));
-        if (magic !== "TDL1" || payload.length < 33) throw new Error("invalid-content");
-
-        const iv = payload.subarray(4, 16);
-        const encryptedContent = payload.subarray(16);
-        const key = await crypto.subtle.importKey(
-          "raw",
-          keyBytes,
-          { name: "AES-GCM" },
-          false,
-          ["decrypt"]
-        );
-        const plaintext = await crypto.subtle.decrypt(
-          { name: "AES-GCM", iv, tagLength: 128 },
-          key,
-          encryptedContent
-        );
-
-        const html = new TextDecoder().decode(plaintext);
-        document.open();
-        document.write(html);
-        document.close();
-      } catch (error) {
-        document.documentElement.classList.add("error");
-        status.textContent = "Este enlace está incompleto o no es válido.";
-        detail.textContent = "Solicita al equipo el enlace privado completo.";
+      if (location.hash) {
+        history.replaceState(null, "", location.pathname + location.search);
       }
+
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const password = passwordField.value;
+        if (!password) return;
+
+        document.documentElement.classList.remove("error");
+        submitButton.disabled = true;
+        submitButton.textContent = "Verificando…";
+        status.textContent = "Comprobando la clave…";
+
+        try {
+          const response = await fetch("contenido.tlab", { cache: "no-store" });
+          if (!response.ok) throw new Error("unavailable");
+
+          const payload = new Uint8Array(await response.arrayBuffer());
+          const magic = new TextDecoder().decode(payload.subarray(0, 4));
+          if (magic !== "TDL2" || payload.length < 53) throw new Error("invalid-content");
+
+          const iterations = new DataView(payload.buffer, payload.byteOffset, payload.byteLength).getUint32(4, false);
+          if (iterations < 100000 || iterations > 2000000) throw new Error("invalid-content");
+
+          const salt = payload.subarray(8, 24);
+          const iv = payload.subarray(24, 36);
+          const encryptedContent = payload.subarray(36);
+          const keyMaterial = await crypto.subtle.importKey(
+            "raw",
+            new TextEncoder().encode(password),
+            "PBKDF2",
+            false,
+            ["deriveKey"]
+          );
+          const key = await crypto.subtle.deriveKey(
+            { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+            keyMaterial,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["decrypt"]
+          );
+          const plaintext = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv, tagLength: 128 },
+            key,
+            encryptedContent
+          );
+
+          const html = new TextDecoder().decode(plaintext);
+          document.open();
+          document.write(html);
+          document.close();
+        } catch (error) {
+          document.documentElement.classList.add("error");
+          status.textContent = "La clave no es correcta o el contenido no está disponible.";
+          detail.textContent = "Revisa la clave e inténtalo nuevamente.";
+          passwordField.value = "";
+          passwordField.focus();
+          submitButton.disabled = false;
+          submitButton.textContent = "Entrar";
+        }
+      });
     })();
   </script>
 </body>
