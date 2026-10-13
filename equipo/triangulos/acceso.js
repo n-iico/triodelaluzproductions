@@ -9,6 +9,38 @@
   const decoder = new TextDecoder();
   const view = document.body.dataset.view;
   let expiryTimer;
+  const language = () => window.TDLPortalLanguage?.get() === "en" ? "en" : "es";
+  const translate = key => window.TDLPortalLanguage?.translate(key) || key;
+
+  function message(element, key) {
+    element.dataset.portalI18n = key;
+    element.textContent = translate(key);
+  }
+
+  function clearMessage(element) {
+    delete element.dataset.portalI18n;
+    element.textContent = "";
+  }
+
+  function syncLaboratoryLanguage() {
+    const id = document.body.dataset.portalLaboratory;
+    if (id === "ultima-esperanza") {
+      const triangle = window.TDLTriangleLanguage;
+      if (triangle && triangle.get() !== language()) triangle.set(language());
+    } else if (id === "ledalen" && document.body.dataset.portalContentLanguage !== language()) {
+      document.documentElement.style.visibility = "hidden";
+      location.reload();
+    }
+  }
+
+  window.addEventListener("tdl-portal-language", syncLaboratoryLanguage);
+  document.addEventListener("tdl-triangle-ready", syncLaboratoryLanguage);
+  window.addEventListener("tdl-triangle-language", event => {
+    const selected = event.detail?.language;
+    if (selected !== "es" && selected !== "en") return;
+    if (window.TDLPortalLanguage?.get() !== selected) window.TDLPortalLanguage?.set(selected);
+    else window.TDLPortalLanguage?.apply();
+  });
 
   function encode(bytes) {
     return btoa(String.fromCharCode(...bytes));
@@ -75,6 +107,7 @@
       location.replace(home());
     } else {
       watchSession();
+      syncLaboratoryLanguage();
     }
     return;
   }
@@ -131,7 +164,7 @@
     const session = readSession();
     if (!session) return location.replace(home(id));
     try {
-      const data = await payload(id + "/contenido.tlab");
+      const data = await payload(id + "/contenido" + (id === "ledalen" && language() === "en" ? ".en" : "") + ".tlab");
       const key = await sessionKey(session, data);
       const html = await decrypt(data, key);
       if (!readSession()) return location.replace(home(id));
@@ -140,7 +173,7 @@
       document.close();
     } catch (error) {
       if (error.message === "unavailable") {
-        document.getElementById("loading-status").textContent = "No se pudo cargar el laboratorio. Revisa tu conexión y vuelve a intentarlo.";
+        message(document.getElementById("loading-status"), "status.unavailableLab");
         return;
       }
       clearSession();
@@ -150,7 +183,7 @@
 
   if (!window.crypto?.subtle) {
     const status = document.getElementById(view === "portal" ? "status" : "loading-status");
-    status.textContent = "Abre esta página con una conexión HTTPS para ingresar.";
+    message(status, "status.secureContext");
     const submit = document.getElementById("submit");
     if (submit) submit.disabled = true;
     return;
@@ -176,8 +209,9 @@
   show.addEventListener("click", () => {
     const visible = field.type === "password";
     field.type = visible ? "text" : "password";
-    show.textContent = visible ? "Ocultar" : "Mostrar";
-    show.setAttribute("aria-label", visible ? "Ocultar clave" : "Mostrar clave");
+    message(show, visible ? "access.hidePassword" : "access.showPassword");
+    show.dataset.portalI18nAria = visible ? "access.hidePasswordAria" : "access.showPasswordAria";
+    show.setAttribute("aria-label", translate(show.dataset.portalI18nAria));
     show.setAttribute("aria-pressed", String(visible));
   });
 
@@ -185,8 +219,8 @@
     event.preventDefault();
     if (!field.value || button.disabled) return;
     button.disabled = true;
-    button.textContent = "Abriendo los laboratorios…";
-    status.textContent = "Verificando la clave…";
+    message(button, "access.opening");
+    message(status, "status.checking");
     field.removeAttribute("aria-invalid");
     try {
       const data = await catalog();
@@ -202,28 +236,31 @@
       }
       field.value = "";
       field.type = "password";
-      show.textContent = "Mostrar";
-      show.setAttribute("aria-label", "Mostrar clave");
+      message(show, "access.showPassword");
+      show.dataset.portalI18nAria = "access.showPasswordAria";
+      show.setAttribute("aria-label", translate("access.showPasswordAria"));
       show.setAttribute("aria-pressed", "false");
-      status.textContent = "";
+      clearMessage(status);
       showPortal();
     } catch (error) {
       if (error.message === "unavailable") {
-        status.textContent = "No se pudo cargar el contenido. Revisa tu conexión e inténtalo de nuevo.";
+        message(status, "status.unavailable");
       } else if (error.message === "storage-unavailable") {
-        status.textContent = "Permite el almacenamiento de esta página en tu navegador para mantener el acceso entre laboratorios.";
+        message(status, "status.storage");
       } else if (error.message === "invalid-content") {
-        status.textContent = "El contenido no está disponible. Recarga la página e inténtalo de nuevo.";
+        message(status, "status.invalidContent");
         catalogPromise = undefined;
       } else {
-        status.textContent = "La clave no es correcta. Revisa la clave compartida por el equipo.";
+        message(status, "status.incorrect");
         field.setAttribute("aria-invalid", "true");
         field.value = "";
       }
       field.focus();
     } finally {
       button.disabled = false;
+      delete button.dataset.portalI18n;
       button.innerHTML = buttonText;
+      window.TDLPortalLanguage?.apply();
     }
   });
 
@@ -231,17 +268,17 @@
     const session = readSession();
     if (!session) return;
     button.disabled = true;
-    status.textContent = "Recuperando el acceso…";
+    message(status, "status.resume");
     try {
       const data = await catalog();
       validateCatalog(await decrypt(data, await sessionKey(session, data)));
       if (readSession()) showPortal();
     } catch (error) {
       if (error.message === "unavailable") {
-        status.textContent = "No se pudo cargar el contenido. Revisa tu conexión e inténtalo de nuevo.";
+        message(status, "status.unavailable");
       } else {
         clearSession();
-        status.textContent = "Ingresa la clave del equipo para abrir los laboratorios.";
+        message(status, "status.needKey");
       }
     } finally {
       button.disabled = false;
