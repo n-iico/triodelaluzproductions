@@ -9,6 +9,26 @@ Sitio web one-page estático (HTML + CSS + JS, sin dependencias ni build).
 - `script.js` — menú móvil, nav al hacer scroll y animaciones de entrada
 - `favicon.svg` — emblema del Trío (favicon)
 
+## Acceso compartido a los laboratorios
+
+La portada del equipo está en `/equipo/triangulos/`. Una sola clave abre las
+páginas independientes de Última Esperanza y Ledalen. El enlace anterior del
+laboratorio de Última Esperanza redirige a esta portada.
+
+Los tres archivos `.tlab` contienen el catálogo y los dos laboratorios cifrados
+con AES-256-GCM y una clave derivada mediante PBKDF2-SHA-256 (300000 iteraciones).
+El navegador conserva solo la clave derivada en `sessionStorage` de la pestaña;
+el acceso caduca a las ocho horas y se elimina con «Cerrar acceso». La contraseña
+no se incluye en los archivos del sitio ni en este repositorio.
+
+Para actualizar ambos laboratorios o cambiar la clave, usa
+`scripts/preparar-triangulos.mjs` con `--source-root` apuntando a la carpeta
+`herramientas` original y `--output` a `equipo/triangulos`. Entrega la clave por
+entrada estándar como un objeto JSON con el campo `password`; no la pongas en
+argumentos ni archivos. El script selecciona las últimas versiones autónomas de
+`compartir/`, añade navegación común y reemplaza los tres archivos cifrados.
+Publica siempre los tres juntos. No copies los HTML originales sin cifrar al sitio.
+
 ## Identidad: el emblema del Trío de la Luz
 
 El símbolo —tres haces (rojo, azul, verde) que convergen en una luz blanca— está
