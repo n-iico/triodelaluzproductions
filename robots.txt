@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /equipo/proyecto/
 
 Sitemap: https://triodelaluzproductions.cl/sitemap.xml

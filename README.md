@@ -29,6 +29,26 @@ argumentos ni archivos. El script selecciona las últimas versiones autónomas d
 `compartir/`, añade navegación común y reemplaza los tres archivos cifrados.
 Publica siempre los tres juntos. No copies los HTML originales sin cifrar al sitio.
 
+## Sitio del proyecto y Plan de filmación
+
+La edición Equipo de la Biblia está en `/equipo/proyecto/` y el Plan de filmación
+en `/equipo/proyecto/plan-de-filmacion/`. Ambos tienen una clave compartida y
+mantienen el acceso por ocho horas en la misma pestaña. «Cerrar acceso» borra
+la sesión. El plan es la foto del tablero del 13 de octubre de 2026: los cambios
+se conservan como borrador en el navegador de cada visitante.
+
+El HTML del proyecto, sus 124 fotografías y el tablero se publican únicamente
+cifrados con AES-256-GCM y PBKDF2-SHA-256 (300000 iteraciones), en dos archivos
+`.tlab`. Las fotos se convierten en URLs temporales del navegador tras ingresar.
+La clave no se guarda en los archivos ni en el repositorio.
+
+Para actualizar, usa `scripts/preparar-proyecto.mjs` con `--source-root` apuntando
+a `herramientas` y `--output equipo/proyecto`. Entrega la clave por entrada
+estándar como JSON con el campo `password`. El script toma
+`sitio/salida/web/equipo/index.html` y la última salida autónoma de
+`tablero-rodaje/compartir/`, agrega navegación y prepara los dos archivos cifrados.
+Publica ambos juntos. No copies la carpeta de imágenes ni las fuentes sin cifrar.
+
 ## Identidad: el emblema del Trío de la Luz
 
 El símbolo —tres haces (rojo, azul, verde) que convergen en una luz blanca— está
