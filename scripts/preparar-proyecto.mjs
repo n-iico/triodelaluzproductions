@@ -27,9 +27,9 @@ function navigation(isPlan) {
   const project = isPlan ? '../' : './';
   const plan = isPlan ? './' : 'plan-de-filmacion/';
   const labs = isPlan ? '../../triangulos/' : '../triangulos/';
-  return `<nav id="tdl-project-nav" aria-label="Espacios del proyecto">
-  <div><a href="${project}">Sitio del proyecto</a><a href="${plan}"${isPlan ? ' aria-current="page"' : ''}>Plan de filmación</a><a href="${labs}">Los triángulos</a></div>
-  <button type="button" data-project-lock>Cerrar acceso</button>
+  return `<nav id="tdl-project-nav" aria-label="Espacios del proyecto" data-project-i18n-aria="nav.spaces">
+  <div><a href="${project}" data-project-i18n="nav.project">Sitio del proyecto</a><a href="${plan}" data-project-i18n="nav.plan"${isPlan ? ' aria-current="page"' : ''}>Plan de filmación</a><a href="${labs}" data-project-i18n="nav.labs">Los triángulos</a></div>
+  <button type="button" data-project-lock data-project-i18n="nav.lock">Cerrar acceso</button>
 </nav>`;
 }
 
@@ -48,14 +48,14 @@ function protectDocument(html, isPlan) {
     throw new Error('El origen no es un documento web completo.');
   }
   html = html.replace(/<meta\b[^>]*name=["'](?:robots|referrer)["'][^>]*>\s*/gi, '');
-  const controller = isPlan ? '../acceso.js?v=20261013-1' : 'acceso.js?v=20261013-1';
-  const head = `<meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex">\n<meta name="referrer" content="no-referrer">\n${navStyle}\n<script src="${controller}" defer></script>\n`;
+  const prefix = isPlan ? '../' : '';
+  const head = `<meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex">\n<meta name="referrer" content="no-referrer">\n${navStyle}\n<script src="${prefix}idioma.js?v=20261013-2" defer></script>\n<script src="${prefix}acceso.js?v=20261013-2" defer></script>\n`;
   html = replaceOnce(html, '</head>', head + '</head>');
   html = html.replace(/<body\b([^>]*)>/, `<body$1 data-document="${isPlan ? 'plan-de-filmacion' : 'proyecto'}">${navigation(isPlan)}`);
   return html;
 }
 
-async function projectDocument() {
+async function projectDocument(plan) {
   const source = join(sourceRoot, 'sitio', 'salida', 'web', 'equipo');
   let html = await readFile(join(source, 'index.html'), 'utf8');
   const dataMatch = html.match(/<script type="application\/json" id="datos">([\s\S]*?)<\/script>/);
@@ -66,11 +66,15 @@ async function projectDocument() {
     if (item.url === 'https://claude.ai/artifact/4hwhraYEzjDoNK3Qyu3sXm') item.url = '../triangulos/ultima-esperanza/';
     if (item.url === 'https://claude.ai/artifact/PdcWUdTXUCu5UGBd4vbNLR') item.url = '../triangulos/ledalen/';
   }
+  const date = plan.date;
+  const dateES = new Intl.DateTimeFormat('es-CL', {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}).format(new Date(date + 'T12:00:00Z'));
+  const dateEN = new Intl.DateTimeFormat('en-GB', {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}).format(new Date(date + 'T12:00:00Z'));
+  data.externos = data.externos.filter(item => !item.url?.startsWith('plan-de-filmacion/'));
   data.externos.unshift({
     titulo: 'Plan de filmación', titulo_en: 'Filming plan', url: 'plan-de-filmacion/',
     area: 'produccion', capa: 3, tipo: 'Rodaje', tipo_en: 'Shoot',
-    desc: 'Calendario de salidas, viaje de Charlie y bloque de febrero. Foto del tablero al 13 de octubre de 2026; los cambios quedan en tu navegador.',
-    desc_en: 'Outings, Charlie’s trip and the February block. Snapshot of the board on 13 October 2026; changes stay in your browser.',
+    desc: `Calendario de salidas y jornadas del documental. Foto del tablero al ${dateES}; los cambios quedan en tu navegador.`,
+    desc_en: `The documentary’s outings and shooting schedule. Snapshot of the board on ${dateEN}; changes stay in your browser.`,
   });
   const paths = [...new Set(dataMatch[1].match(/img\/[A-Za-z0-9_.-]+/g) || [])];
   const images = {};
@@ -158,13 +162,14 @@ try {
     input += chunk;
     if (input.length > 65536) throw new Error('Entrada demasiado grande.');
   }
-  const parsed = JSON.parse(input);
+  let parsed;
+  try { parsed = JSON.parse(input); } catch { throw new Error('La entrada debe ser JSON con el campo password.'); }
   input = '';
   if (typeof parsed.password !== 'string' || !parsed.password) throw new Error('Falta la clave.');
   password = Buffer.from(parsed.password);
   parsed.password = '';
-  const project = await projectDocument();
   const plan = await planDocument();
+  const project = await projectDocument(plan);
   const salt = randomBytes(16);
   key = pbkdf2Sync(password, salt, ITERATIONS, 32, 'sha256');
   password.fill(0);

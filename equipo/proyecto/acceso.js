@@ -82,12 +82,35 @@
   const button = document.getElementById("submit");
   const status = document.getElementById("status");
   const show = document.getElementById("show-password");
-  const buttonText = button.innerHTML;
-  const documentName = documentId === "plan-de-filmacion" ? "el plan de filmación" : "el sitio del proyecto";
+  const enterLabel = document.getElementById("enter-label");
+  const documentPrefix = documentId === "plan-de-filmacion" ? "plan" : "project";
+  const translate = key => window.TDLProjectLanguage.translate(key);
+  let isBusy = false;
+  let statusKey = "";
   let contentPromise;
 
+  function renderControls() {
+    const visible = field.type === "text";
+    show.textContent = translate(visible ? "access.hidePassword" : "access.showPassword");
+    show.setAttribute("aria-label", translate(visible ? "access.hidePasswordAria" : "access.showPasswordAria"));
+    show.setAttribute("aria-pressed", String(visible));
+    enterLabel.textContent = translate(documentPrefix + (isBusy ? ".opening" : ".enter"));
+    status.textContent = statusKey ? translate(statusKey) : "";
+    if (field.validity.valueMissing && field.validationMessage && field.validity.customError) {
+      field.setCustomValidity(translate("status.required"));
+    }
+  }
+
+  function setStatus(key) {
+    statusKey = key;
+    status.textContent = key ? translate(key) : "";
+  }
+
+  window.addEventListener("tdl-project-language", renderControls);
+  renderControls();
+
   if (!window.crypto?.subtle) {
-    status.textContent = "Abre esta página con una conexión HTTPS para ingresar.";
+    setStatus("status.secureContext");
     button.disabled = true;
     return;
   }
@@ -142,42 +165,49 @@
 
   function showError(error, resuming = false) {
     if (error.message === "unavailable") {
-      status.textContent = "No se pudo cargar el contenido. Revisa tu conexión e inténtalo de nuevo.";
+      setStatus("status.unavailable");
     } else if (error.message === "storage-unavailable") {
-      status.textContent = "Permite el almacenamiento de esta página en tu navegador para mantener el acceso al proyecto y al plan de filmación.";
+      setStatus("status.storage");
     } else if (error.message === "invalid-content") {
-      status.textContent = "El contenido no está disponible. Recarga la página e inténtalo de nuevo.";
+      setStatus("status.invalidContent");
       contentPromise = undefined;
     } else if (resuming || error.message === "session-expired") {
       clearSession();
-      status.textContent = "Tu acceso terminó. Ingresa la clave del proyecto para continuar.";
+      setStatus("status.expired");
     } else {
-      status.textContent = "La clave no es correcta. Revisa la clave compartida por el equipo.";
+      setStatus("status.incorrect");
       field.setAttribute("aria-invalid", "true");
       field.value = "";
     }
   }
 
-  function busy(active, message = "") {
+  function busy(active, messageKey = "") {
+    isBusy = active;
     button.disabled = active;
     form.setAttribute("aria-busy", String(active));
-    if (active) button.textContent = "Abriendo " + documentName + "…";
-    else button.innerHTML = buttonText;
-    if (message) status.textContent = message;
+    if (messageKey) statusKey = messageKey;
+    renderControls();
   }
 
   show.addEventListener("click", () => {
     const visible = field.type === "password";
     field.type = visible ? "text" : "password";
-    show.textContent = visible ? "Ocultar" : "Mostrar";
-    show.setAttribute("aria-label", visible ? "Ocultar clave" : "Mostrar clave");
-    show.setAttribute("aria-pressed", String(visible));
+    renderControls();
+  });
+
+  field.addEventListener("invalid", () => {
+    if (field.validity.valueMissing) field.setCustomValidity(translate("status.required"));
+  });
+  field.addEventListener("input", () => {
+    field.setCustomValidity("");
+    field.removeAttribute("aria-invalid");
+    if (statusKey === "status.incorrect") setStatus("");
   });
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
     if (!field.value || button.disabled) return;
-    busy(true, "Verificando la clave…");
+    busy(true, "status.checking");
     field.removeAttribute("aria-invalid");
     try {
       const data = await content();
@@ -203,7 +233,7 @@
   async function resume() {
     const session = readSession();
     if (!session || button.disabled) return;
-    busy(true, "Recuperando el acceso…");
+    busy(true, "status.resume");
     try {
       const data = await content();
       const html = await decrypt(data, await sessionKey(session, data));

@@ -8,17 +8,24 @@
   <meta name="theme-color" content="#0b1015">
   <title>Plan de filmación · OVNI al fin del mundo</title>
   <link rel="icon" type="image/svg+xml" href="../../../favicon.svg">
-  <link rel="stylesheet" href="../acceso.css?v=20261013-1">
-  <script src="../acceso.js?v=20261013-1" defer></script>
+  <link rel="stylesheet" href="../acceso.css?v=20261013-2">
+  <script src="../idioma.js?v=20261013-2" defer></script>
+  <script src="../acceso.js?v=20261013-2" defer></script>
 </head>
 <body data-view="gate" data-document="plan-de-filmacion">
-  <a class="skip-link" href="#access">Ir al acceso</a>
+  <a class="skip-link" href="#access" data-project-i18n="access.skip">Ir al acceso</a>
   <header class="masthead">
-    <a class="brand" href="../../../" aria-label="Trío de la Luz Productions, sitio principal">
+    <a class="brand" href="../../../" aria-label="Trío de la Luz Productions, sitio principal" data-project-i18n-aria="nav.mainSite">
       <img src="../../../favicon.svg" width="34" height="34" alt="">
       <span>Trío de la Luz <small>Productions</small></span>
     </a>
-    <span class="team-tag"><span aria-hidden="true"></span> Espacio del equipo</span>
+    <div class="masthead-tools">
+      <span class="team-tag"><span aria-hidden="true"></span><span data-project-i18n="access.team">Espacio del equipo</span></span>
+      <div class="project-language" role="group" aria-label="Idioma de la página" data-project-i18n-aria="nav.language">
+        <button type="button" data-project-language="es" aria-pressed="true" lang="es">Español</button>
+        <button type="button" data-project-language="en" aria-pressed="false" lang="en">English</button>
+      </div>
+    </div>
   </header>
   <main id="access" class="access">
     <div class="access-art" aria-hidden="true">
@@ -31,26 +38,26 @@
         <path class="signal" d="M253 204h74m-37-37v74"/>
         <circle cx="290" cy="204" r="3"/>
         <circle cx="226" cy="235" r="2"/><circle cx="389" cy="266" r="2"/>
-        <text x="207" y="356">LA FILMACIÓN</text>
+        <text x="290" y="356" text-anchor="middle" data-project-i18n="plan.art">LA FILMACIÓN</text>
       </svg>
     </div>
     <div class="access-copy">
-      <p class="eyebrow">OVNI al fin del mundo</p>
-      <h1>Plan de<br>filmación</h1>
-      <p class="intro">El calendario y las jornadas del documental. Consulta el plan de rodaje del equipo de dirección y producción.</p>
+      <p class="eyebrow" data-project-i18n="access.documentary">OVNI al fin del mundo</p>
+      <h1 data-project-i18n-html="plan.heading">Plan de<br>filmación</h1>
+      <p class="intro" data-project-i18n="plan.intro">El calendario y las jornadas del documental. Consulta el plan de rodaje del equipo de dirección y producción.</p>
       <form id="gate" class="gate">
-        <label for="password">Clave de acceso del proyecto</label>
+        <label for="password" data-project-i18n="access.passwordLabel">Clave de acceso del proyecto</label>
         <div class="password-wrap">
           <input id="password" name="password" type="password" autocomplete="current-password" required aria-describedby="status" autofocus>
           <button id="show-password" class="show-password" type="button" aria-label="Mostrar clave" aria-pressed="false">Mostrar</button>
         </div>
-        <button id="submit" class="enter" type="submit">Abrir el plan de filmación <span aria-hidden="true">↗</span></button>
+        <button id="submit" class="enter" type="submit"><span id="enter-label" data-project-i18n="plan.enter">Abrir el plan de filmación</span><span class="enter-arrow" aria-hidden="true">↗</span></button>
         <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
       </form>
-      <p class="access-note">La misma clave del sitio del proyecto. El acceso dura ocho horas en esta pestaña.</p>
-      <noscript><p class="status">Activa JavaScript para abrir el plan de filmación.</p></noscript>
+      <p class="access-note" data-project-i18n="plan.note">La misma clave del sitio del proyecto. El acceso dura ocho horas en esta pestaña. El contenido del plan está en español.</p>
+      <noscript><p class="status">Activa JavaScript para abrir el plan de filmación. / Enable JavaScript to open the filming plan.</p></noscript>
     </div>
   </main>
-  <footer class="footer"><span>Material de producción · Acceso del equipo</span><span>Trío de la Luz Productions</span></footer>
+  <footer class="footer"><span data-project-i18n="plan.footer">Material de producción · Acceso del equipo</span><span>Trío de la Luz Productions</span></footer>
 </body>
 </html>

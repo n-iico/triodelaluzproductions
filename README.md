@@ -34,20 +34,26 @@ Publica siempre los tres juntos. No copies los HTML originales sin cifrar al sit
 La edición Equipo de la Biblia está en `/equipo/proyecto/` y el Plan de filmación
 en `/equipo/proyecto/plan-de-filmacion/`. Ambos tienen una clave compartida y
 mantienen el acceso por ocho horas en la misma pestaña. «Cerrar acceso» borra
-la sesión. El plan es la foto del tablero del 13 de octubre de 2026: los cambios
+la sesión. La página de acceso permite elegir Español / English, y el proyecto
+abre con ese idioma. El plan es una foto del tablero original: los cambios
 se conservan como borrador en el navegador de cada visitante.
 
-El HTML del proyecto, sus 124 fotografías y el tablero se publican únicamente
+El HTML del proyecto, sus fotografías y el tablero se publican únicamente
 cifrados con AES-256-GCM y PBKDF2-SHA-256 (300000 iteraciones), en dos archivos
 `.tlab`. Las fotos se convierten en URLs temporales del navegador tras ingresar.
 La clave no se guarda en los archivos ni en el repositorio.
 
-Para actualizar, usa `scripts/preparar-proyecto.mjs` con `--source-root` apuntando
-a `herramientas` y `--output equipo/proyecto`. Entrega la clave por entrada
-estándar como JSON con el campo `password`. El script toma
-`sitio/salida/web/equipo/index.html` y la última salida autónoma de
-`tablero-rodaje/compartir/`, agrega navegación y prepara los dos archivos cifrados.
-Publica ambos juntos. No copies la carpeta de imágenes ni las fuentes sin cifrar.
+Para actualizar desde los originales, usa `scripts/actualizar-proyecto.mjs` con
+`--source-root` apuntando a `herramientas` y `--output equipo/proyecto`. Entrega
+la clave por entrada estándar como JSON con el campo `password`. El proceso
+regenera la edición Equipo y el plan desde sus fuentes actuales en una carpeta
+temporal, prepara ambos documentos cifrados y elimina los archivos temporales.
+Las instrucciones completas están en `equipo/proyecto/ACTUALIZAR.md`.
+
+`scripts/preparar-proyecto.mjs` también permite preparar salidas ya exportadas.
+Ambos procesos conservan los enlaces al plan y a los laboratorios y toman la fecha
+del plan actual. Publica los dos `.tlab` juntos. No copies la carpeta de imágenes
+ni las fuentes sin cifrar al repositorio web.
 
 ## Identidad: el emblema del Trío de la Luz
 
